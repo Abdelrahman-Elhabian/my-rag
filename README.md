@@ -25,6 +25,7 @@ conda activate mini-rag
 
 ### Install the required packages
 
+
 ```
 pip install -r requirements.txt
 ```
@@ -35,3 +36,13 @@ cp .env.example .env
 ```
 
 Set your environment variables in the '.env' file, like `OPENAI_API_KEY` variable
+
+## Run the FastAPI server
+
+``` bash
+$ uvicorn main:app --reload --host 0.0.0.0 --port 5000
+```
+or 
+``` bash
+$ python -m uvicorn main:app --reload
+```
