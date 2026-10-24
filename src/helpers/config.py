@@ -1,4 +1,10 @@
+import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+DOTENV_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"
+)
 
 
 class Settings(BaseSettings):
@@ -9,9 +15,9 @@ class Settings(BaseSettings):
     FILE_MAX_SIZE: int
     FILE_DEFAULT_CHUNK_SIZE: int
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=DOTENV_PATH, extra="ignore")
 
 
 def get_settings():
     return Settings()
+
