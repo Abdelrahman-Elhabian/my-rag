@@ -1,23 +1,17 @@
-import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
-DOTENV_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"
-)
-
-
 class Settings(BaseSettings):
-    APP_NAME: str
-    APP_VERSION: str
-    OPENAI_API_KEY: str
-    FILE_ALLOWED_TYPES: list
-    FILE_MAX_SIZE: int
-    FILE_DEFAULT_CHUNK_SIZE: int
 
-    model_config = SettingsConfigDict(env_file=DOTENV_PATH, extra="ignore")
+    APP_NAME: str = "mini-RAG"
+    APP_VERSION: str = "0.1"
+    OPENAI_API_KEY: str = ""
 
+    FILE_ALLOWED_TYPES: list = ["text/plain", "application/pdf"]
+    FILE_MAX_SIZE: int = 10
+    FILE_DEFAULT_CHUNK_SIZE: int = 512000
+
+    class Config:
+        env_file = ".env"
 
 def get_settings():
     return Settings()
-

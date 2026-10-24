@@ -1,108 +1,57 @@
 from .BaseController import BaseController
+from .ProjectController import ProjectController
 from fastapi import UploadFile
 from models import ResponseSignal
-import os
-from .ProjectController import ProjectController
 import re
-
+import os
 
 class DataController(BaseController):
+    
     def __init__(self):
         super().__init__()
-        self.size_scale = 1048576  # Convert MB to bytes
+        self.size_scale = 1048576 # convert MB to bytes
 
-    def _get_file_size(self, file: UploadFile):
-        size = getattr(file, "size", None)
-        if isinstance(size, (int, float)):
-            return int(size)
+    def validate_uploaded_file(self, file: UploadFile):
 
-        headers = getattr(file, "headers", {}) or {}
-        content_length = headers.get("content-length") or headers.get("Content-Length")
-        if content_length is not None:
-            try:
-                return int(content_length)
-            except (TypeError, ValueError):
-                pass
-
-        file_obj = getattr(file, "file", None)
-        if file_obj is None:
-            return None
-
-        try:
-            current_position = file_obj.tell()
-            file_obj.seek(0, os.SEEK_END)
-            file_size = file_obj.tell()
-            file_obj.seek(current_position)
-            return file_size
-        except (AttributeError, OSError, ValueError):
-            return None
-
-    def _is_allowed_content_type(self, file: UploadFile):
-        content_type = (getattr(file, "content_type", None) or "").lower()
-        allowed_types = {
-            str(t).lower().strip() for t in self.app_settings.FILE_ALLOWED_TYPES
-        }
-
-        if content_type in allowed_types:
-            return True
-
-        filename = (getattr(file, "filename", "") or "").lower()
-        if not filename:
-            return False
-
-        extension = os.path.splitext(filename)[1]
-        generic_types = {"application/octet-stream", "binary/octet-stream", ""}
-        if content_type in generic_types:
-            extension_map = {
-                ".txt": {"text/plain"},
-                ".pdf": {"application/pdf"},
-                ".py": {"text/plain", "text/x-python", "application/x-python-code"},
-            }
-            if extension_map.get(extension, set()) & allowed_types:
-                return True
-
-            # Some clients omit the MIME type or send a generic octet-stream value
-            # even for valid text-based uploads such as .py files.
-            if not content_type:
-                return extension in {".txt", ".pdf", ".py"}
-
-            return False
-
-        return False
-
-    def file_validation(self, file: UploadFile):
-        if not self._is_allowed_content_type(file):
+        if file.content_type not in self.app_settings.FILE_ALLOWED_TYPES:
             return False, ResponseSignal.FILE_TYPE_NOT_SUPPORTED.value
 
-        file_size = self._get_file_size(file)
-        if (
-            file_size is not None
-            and file_size > self.app_settings.FILE_MAX_SIZE * self.size_scale
-        ):
+        if file.size > self.app_settings.FILE_MAX_SIZE * self.size_scale:
             return False, ResponseSignal.FILE_SIZE_EXCEEDED.value
 
-        return True, ResponseSignal.FILE_VALIDATE_SUCCESS.value
+        return True, ResponseSignal.FILE_VALIDATED_SUCCESS.value
 
-    def generate_unique_filename(self, orig_filename: str, project_id: str):
+    def generate_unique_filepath(self, orig_file_name: str, project_id: str):
+
         random_key = self.generate_random_string()
         project_path = ProjectController().get_project_path(project_id=project_id)
 
-        cleaned_filename = self.get_clean_filename(orig_filename=orig_filename)
+        cleaned_file_name = self.get_clean_file_name(
+            orig_file_name=orig_file_name
+        )
 
-        new_file_path = os.path.join(project_path, random_key + "_" + cleaned_filename)
+        new_file_path = os.path.join(
+            project_path,
+            random_key + "_" + cleaned_file_name
+        )
 
         while os.path.exists(new_file_path):
             random_key = self.generate_random_string()
             new_file_path = os.path.join(
-                project_path, random_key + "_" + cleaned_filename
+                project_path,
+                random_key + "_" + cleaned_file_name
             )
 
-        return new_file_path
+        return new_file_path, random_key + "_" + cleaned_file_name
 
-    def get_clean_filename(self, orig_filename: str):
-        # Remove all special characters except underscore and . and whitespace
-        cleaned_filename = re.sub(r"[^\w\s.]", "", orig_filename.strip())
+    def get_clean_file_name(self, orig_file_name: str):
+
+        # remove any special characters, except underscore and .
+        cleaned_file_name = re.sub(r'[^\w.]', '', orig_file_name.strip())
+
         # replace spaces with underscore
-        cleaned_filename = cleaned_filename.replace(" ", "_")
+        cleaned_file_name = cleaned_file_name.replace(" ", "_")
 
-        return cleaned_filename
+        return cleaned_file_name
+
+
