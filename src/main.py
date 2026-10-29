@@ -8,7 +8,6 @@ app = FastAPI()
 @app.on_event("startup")
 async def startup_db_client():
     settings = get_settings()
-
     app.mongo_conn = AsyncIOMotorClient(settings.MONGODB_URL)
     app.db_client = app.mongo_conn[settings.MONGODB_DATABASE]
 
@@ -16,12 +15,7 @@ async def startup_db_client():
 async def shutdown_db_client():
     app.mongo_conn.close()
 
+
 app.include_router(base.base_router)
 app.include_router(data.data_router)
-
-@app.get("/")
-@app.get("/welcome")
-async def root_welcome(app_settings: base.Settings = base.Depends(base.get_settings)):
-    return await base.welcome(app_settings)
-
 
